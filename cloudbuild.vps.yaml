@@ -1,0 +1,243 @@
+steps:
+  # ─────────────────────────────────────────────────────────────────────
+  # Step 1: Render .env
+  #   - All non-secret vars → substitutions (easy to change in trigger UI)
+  #   - Secrets only → JWT_SECRET, SANITY_API_TOKEN, ADMIN_PASSWORD,
+  #     RESEND_API_KEY (fetched from Secret Manager JSON)
+  # ─────────────────────────────────────────────────────────────────────
+  - name: gcr.io/cloud-builders/gcloud
+    id: Render-env
+    env:
+      - _SECRET_JSON_NAME=${_SECRET_JSON_NAME}
+      - _NEXT_PUBLIC_URL=${_NEXT_PUBLIC_URL}
+      - _NEXT_PUBLIC_GOOGLE_ANALYTICS_MEASUREMENT_ID=${_NEXT_PUBLIC_GOOGLE_ANALYTICS_MEASUREMENT_ID}
+    script: |
+      set -e
+
+      echo "▶ Rendering .env file..."
+
+      ###############################
+      # NON-SECRET ENV VARS
+      ###############################
+      python3 - <<'PY'
+      import os
+
+      lines = [
+          "# ===== BASIC =====",
+          "NODE_ENV=production",
+          f"NEXT_PUBLIC_URL={os.environ['_NEXT_PUBLIC_URL']}",
+          "",
+          "# ===== GOOGLE ANALYTICS =====",
+          f"NEXT_PUBLIC_GOOGLE_ANALYTICS_MEASUREMENT_ID={os.environ.get('_NEXT_PUBLIC_GOOGLE_ANALYTICS_MEASUREMENT_ID', '')}",
+          "",
+      ]
+
+      with open("/workspace/.env", "w") as f:
+          f.write("\n".join(lines) + "\n")
+      PY
+
+      ###############################
+      # SECRET ENV VARS (from Secret Manager JSON)
+      ###############################
+      echo "▶ Injecting secrets from Secret Manager JSON..."
+
+      SECRET_JSON=$(gcloud secrets versions access latest --secret="$_SECRET_JSON_NAME")
+      export SECRET_JSON
+
+      python3 - <<'PY' >> /workspace/.env
+      import json, os
+
+      data = json.loads(os.environ["SECRET_JSON"])
+      for key, value in data.items():
+          if isinstance(value, (dict, list)):
+              value = json.dumps(value, separators=(",", ":"), ensure_ascii=False)
+          print(f"{key}={value}")
+      PY
+
+      echo "✅ .env rendered successfully"
+      echo "▶ Env keys loaded:"
+      grep -v '^#' /workspace/.env | grep -v '^$' | cut -d'=' -f1
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Step 2: Build Docker image
+  #   - Read /workspace/.env → pass each var as --build-arg
+  #   ⚠️  Must run AFTER Render-env because NEXT_PUBLIC_* vars are
+  #       baked into the JS bundle at pnpm build time
+  # ─────────────────────────────────────────────────────────────────────
+  - name: gcr.io/cloud-builders/docker
+    id: Build
+    entrypoint: bash
+    args:
+      - "-c"
+      - |
+        set -e
+
+        echo "▶ Constructing docker build-args from .env..."
+
+        BUILD_ARGS=()
+        while IFS= read -r line || [[ -n "$line" ]]; do
+          [[ -z "${line// }" ]] && continue
+          [[ "$line" =~ ^[[:space:]]*# ]] && continue
+          key="${line%%=*}"
+          [[ -z "$key" ]] && continue
+          BUILD_ARGS+=("--build-arg" "$line")
+        done < /workspace/.env
+
+        echo "▶ Building Docker image..."
+        docker build --no-cache \
+          "${BUILD_ARGS[@]}" \
+          -t "$_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA" \
+          -f Dockerfile \
+          .
+
+        echo "✅ Docker build complete"
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Step 3: Push image to Artifact Registry
+  # ─────────────────────────────────────────────────────────────────────
+  - name: gcr.io/cloud-builders/docker
+    id: Push
+    args:
+      - push
+      - >-
+        $_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Step 4: Deploy to VPS via SSH
+  #   - SCP .env to VPS
+  #   - Remote: docker login with SA → pull (with retry) → run new
+  # ─────────────────────────────────────────────────────────────────────
+  - name: "ubuntu"
+    id: Deploy-to-VPS
+    entrypoint: "bash"
+    secretEnv: ["VM_SSH_KEY", "SA_BK_DEV", "SSH_PORT"]
+    args:
+      - "-c"
+      - |
+        set -e
+
+        echo "▶ Installing SSH client..."
+        apt-get update -qq && apt-get install -y -q openssh-client
+
+        echo "▶ Setting up SSH key..."
+        mkdir -p /workspace/.ssh
+        printf '%s\n' "$$VM_SSH_KEY" | tr -d '\r' > /workspace/.ssh/id_rsa
+        chmod 600 /workspace/.ssh/id_rsa
+
+        CONTROL_PATH="/workspace/.ssh/ctl-%r@%h:%p"
+        SSH_OPTS="-i /workspace/.ssh/id_rsa -o Port=$$SSH_PORT -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=auto -o ControlPath=$$CONTROL_PATH -o ControlPersist=300"
+        SSH_CMD="ssh $$SSH_OPTS $_VPS_USER@$_VPS_IP"
+        SCP_CMD="scp $$SSH_OPTS"
+
+        echo "▶ Opening persistent SSH master connection..."
+        ssh -i /workspace/.ssh/id_rsa \
+            -o Port=$$SSH_PORT \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o ControlMaster=yes \
+            -o ControlPath="$$CONTROL_PATH" \
+            -o ControlPersist=300 \
+            -Nf $_VPS_USER@$_VPS_IP
+
+        echo "▶ Preparing VM directories..."
+        $$SSH_CMD "sudo mkdir -p /opt/$_SERVICE_NAME && sudo chown -R $_VPS_USER:$_VPS_USER /opt/$_SERVICE_NAME || true"
+
+        echo "▶ Copying .env to VM..."
+        echo "$$SA_BK_DEV" > /workspace/sa.json
+        $$SSH_CMD "mkdir -p /tmp/$_SERVICE_NAME"
+        $$SCP_CMD /workspace/.env /workspace/sa.json $_VPS_USER@$_VPS_IP:/tmp/$_SERVICE_NAME/
+        $$SSH_CMD "sudo mv /tmp/$_SERVICE_NAME/.env /opt/$_SERVICE_NAME/.env && sudo chmod 600 /opt/$_SERVICE_NAME/.env"
+        $$SSH_CMD "sudo mv /tmp/$_SERVICE_NAME/sa.json /opt/$_SERVICE_NAME/sa.json && sudo chmod 600 /opt/$_SERVICE_NAME/sa.json"
+
+        echo "▶ Creating deployment script..."
+        cat << 'EOF' > /workspace/deploy.sh
+        #!/bin/bash
+        set -e
+
+        IMAGE=$_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
+        IMAGE_REPO=$_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME
+
+        # Login to Artifact Registry on VPS
+        cat /opt/$_SERVICE_NAME/sa.json | sudo docker login -u _json_key --password-stdin https://$_AR_HOSTNAME
+
+        # Pull latest image
+        sudo docker pull "$$IMAGE"
+
+        # Stop and remove old container
+        sudo docker stop $_SERVICE_NAME || true
+        sudo docker rm -f $_SERVICE_NAME || true
+
+        # Run new container
+        sudo docker run -d \
+          --name $_SERVICE_NAME \
+          --restart=always \
+          --network uct_internal_net \
+          --env-file /opt/$_SERVICE_NAME/.env \
+          -v /opt/$_SERVICE_NAME/sa.json:/opt/$_SERVICE_NAME/sa.json:ro \
+          -p $_HOST_PORT:$_PORT \
+          "$$IMAGE"
+
+        # Cleanup old images
+        OLD_IMAGE_IDS=$$(sudo docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}' | awk -v current="$$IMAGE" -v repo="$$IMAGE_REPO" '$$1 ~ ("^" repo ":") && $$1 != current { print $$2 }')
+
+        if [ -n "$$OLD_IMAGE_IDS" ]; then
+          sudo docker rmi -f $$OLD_IMAGE_IDS
+        fi
+        EOF
+
+        echo "▶ Copying deploy script to VM..."
+        $$SCP_CMD /workspace/deploy.sh $_VPS_USER@$_VPS_IP:/tmp/$_SERVICE_NAME/deploy.sh
+
+        echo "▶ Executing deploy script on VM..."
+        $$SSH_CMD "bash /tmp/$_SERVICE_NAME/deploy.sh"
+
+        echo "▶ Cleaning up temp files on VM..."
+        $$SSH_CMD "rm -rf /tmp/$_SERVICE_NAME"
+
+        echo "✅ Deployment finished!"
+
+# ──────────────────────────────────────────────────────────────────────
+images:
+  - >-
+    $_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/$PROJECT_ID/secrets/dev-vm-ssh-key/versions/latest
+      env: "VM_SSH_KEY"
+    - versionName: projects/$PROJECT_ID/secrets/SA_BK_DEV/versions/latest
+      env: "SA_BK_DEV"
+    - versionName: projects/$PROJECT_ID/secrets/ssh-port-dev/versions/latest
+      env: "SSH_PORT"
+
+options:
+  substitutionOption: ALLOW_LOOSE
+  logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  # ===== Service / Registry =====
+  _SERVICE_NAME: uc-buddy
+  _AR_PROJECT_ID: uctalent-dev
+  _AR_REPOSITORY: cloud-run-source-deploy
+  _AR_HOSTNAME: asia-southeast1-docker.pkg.dev
+  _GCP_REGION: asia-southeast1
+
+  # ===== Container Port =====
+  _PORT: "3000"
+  _HOST_PORT: "3005"
+
+  # ===== VPS =====
+  _VPS_IP: "14.225.210.119"
+  _VPS_USER: alphaforce
+
+  # ===== Secret Manager =====
+  _SECRET_JSON_NAME: uc-buddy-env-dev
+
+  # ===== Non-secret ENV =====
+  _NEXT_PUBLIC_URL: "https://ucbuddy.ai"
+  _NEXT_PUBLIC_GOOGLE_ANALYTICS_MEASUREMENT_ID: ""
+
+tags:
+  - deploy-to-vps
+  - uc-buddy
