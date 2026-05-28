@@ -225,7 +225,7 @@ substitutions:
 
   # ===== Container Port =====
   _PORT: "3000"
-  _HOST_PORT: "3005"
+  _HOST_PORT: "2510"
 
   # ===== VPS =====
   _VPS_IP: "14.225.210.119"
