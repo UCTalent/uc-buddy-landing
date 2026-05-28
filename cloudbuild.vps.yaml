@@ -73,30 +73,30 @@ steps:
       - |
         set -e
 
-        IMAGE="$_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME"
-        CACHE_TAG="$IMAGE:latest"
+        image="$_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME"
+        cache_tag="$image:latest"
 
-        echo "▶ Pulling cache image ($CACHE_TAG)..."
-        docker pull "$CACHE_TAG" || echo "⚠️  No cache image found (first build?), continuing..."
+        echo "▶ Pulling cache image ($cache_tag)..."
+        docker pull "$cache_tag" || echo "⚠️  No cache image found (first build?), continuing..."
 
         echo "▶ Constructing docker build-args from .env..."
 
-        BUILD_ARGS=()
+        build_args=()
         while IFS= read -r line || [[ -n "$line" ]]; do
           [[ -z "${line// }" ]] && continue
           [[ "$line" =~ ^[[:space:]]*# ]] && continue
           key="${line%%=*}"
           [[ -z "$key" ]] && continue
-          BUILD_ARGS+=("--build-arg" "$line")
+          build_args+=("--build-arg" "$line")
         done < /workspace/.env
 
         echo "▶ Building Docker image (with cache)..."
         docker build \
-          --cache-from "$CACHE_TAG" \
+          --cache-from "$cache_tag" \
           --build-arg BUILDKIT_INLINE_CACHE=1 \
-          "${BUILD_ARGS[@]}" \
-          -t "$IMAGE:$COMMIT_SHA" \
-          -t "$CACHE_TAG" \
+          "${build_args[@]}" \
+          -t "$image:$COMMIT_SHA" \
+          -t "$cache_tag" \
           -f Dockerfile \
           .
 
@@ -112,9 +112,9 @@ steps:
       - "-c"
       - |
         set -e
-        IMAGE="$_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME"
-        docker push "$IMAGE:$COMMIT_SHA"
-        docker push "$IMAGE:latest"
+        image="$_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME"
+        docker push "$image:$COMMIT_SHA"
+        docker push "$image:latest"
         echo "✅ Push complete"
 
   # ─────────────────────────────────────────────────────────────────────
