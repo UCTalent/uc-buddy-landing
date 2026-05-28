@@ -60,6 +60,7 @@ steps:
 
   # ─────────────────────────────────────────────────────────────────────
   # Step 2: Build Docker image
+  #   - Pull :latest as cache source → skip re-downloading deps
   #   - Read /workspace/.env → pass each var as --build-arg
   #   ⚠️  Must run AFTER Render-env because NEXT_PUBLIC_* vars are
   #       baked into the JS bundle at pnpm build time
@@ -72,6 +73,12 @@ steps:
       - |
         set -e
 
+        IMAGE="$_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME"
+        CACHE_TAG="$IMAGE:latest"
+
+        echo "▶ Pulling cache image ($CACHE_TAG)..."
+        docker pull "$CACHE_TAG" || echo "⚠️  No cache image found (first build?), continuing..."
+
         echo "▶ Constructing docker build-args from .env..."
 
         BUILD_ARGS=()
@@ -83,24 +90,32 @@ steps:
           BUILD_ARGS+=("--build-arg" "$line")
         done < /workspace/.env
 
-        echo "▶ Building Docker image..."
-        docker build --no-cache \
+        echo "▶ Building Docker image (with cache)..."
+        docker build \
+          --cache-from "$CACHE_TAG" \
+          --build-arg BUILDKIT_INLINE_CACHE=1 \
           "${BUILD_ARGS[@]}" \
-          -t "$_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA" \
+          -t "$IMAGE:$COMMIT_SHA" \
+          -t "$CACHE_TAG" \
           -f Dockerfile \
           .
 
         echo "✅ Docker build complete"
 
   # ─────────────────────────────────────────────────────────────────────
-  # Step 3: Push image to Artifact Registry
+  # Step 3: Push image to Artifact Registry (both :sha and :latest)
   # ─────────────────────────────────────────────────────────────────────
   - name: gcr.io/cloud-builders/docker
     id: Push
+    entrypoint: bash
     args:
-      - push
-      - >-
-        $_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
+      - "-c"
+      - |
+        set -e
+        IMAGE="$_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME"
+        docker push "$IMAGE:$COMMIT_SHA"
+        docker push "$IMAGE:latest"
+        echo "✅ Push complete"
 
   # ─────────────────────────────────────────────────────────────────────
   # Step 4: Deploy to VPS via SSH
