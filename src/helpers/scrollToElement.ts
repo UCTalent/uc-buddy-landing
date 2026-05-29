@@ -8,19 +8,17 @@ const getHeaderOffset = (): number => {
 const easeInOutCubic = (t: number): number =>
   t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
-/** Lướt mượt tới section (offset trừ header sticky) */
 export const scrollToSection = (id: string): void => {
   if (typeof window === "undefined") return;
 
   const element = document.getElementById(id);
   if (!element) {
-    console.warn(`[scrollToSection] Không tìm thấy section #${id}`);
     return;
   }
 
   const targetY = Math.max(
     0,
-    element.getBoundingClientRect().top + window.scrollY - getHeaderOffset() - 16,
+    element.getBoundingClientRect().top + window.scrollY - getHeaderOffset() - 16
   );
 
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;

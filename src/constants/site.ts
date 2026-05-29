@@ -7,18 +7,18 @@ export const SITE_CONFIG = {
   /**
    * Base URL of the website (used for SEO, sitemap, etc.)
    */
-  baseUrl: "https://finmate.fun",
+  baseUrl: "https://ucbuddy.ai",
 
   /**
    * Default locale for the site
    * This should match the i18n configuration
    */
-  defaultLocale: "vi",
+  defaultLocale: "en",
 
   /**
    * Supported locales
    */
-  locales: ["vi", "en"] as const,
+  locales: ["en"] as const,
 } as const;
 
 export type SupportedLocale = (typeof SITE_CONFIG.locales)[number];

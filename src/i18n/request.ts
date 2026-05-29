@@ -8,7 +8,7 @@ export const messages = {
 
 export default getRequestConfig(() => {
   return {
-    locale: "vi",
+    locale: "en",
     messages,
   };
 });
