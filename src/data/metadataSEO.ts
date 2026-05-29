@@ -53,9 +53,6 @@ export const APP_LAYOUT_METADATA: Metadata = {
   alternates: {
     canonical: SITE_CONFIG.baseUrl,
   },
-  verification: {
-    google: "4kSLgxKYQK5ZZt3GmGs-sfQAlRNqRXBNTM3KPm56-Kc",
-  },
   openGraph: {
     title: "UCBuddy AI | AI-Powered CV & Resume Builder",
     description:
