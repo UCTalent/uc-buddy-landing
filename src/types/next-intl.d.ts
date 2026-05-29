@@ -4,7 +4,7 @@ import "next-intl";
 
 declare module "next-intl" {
   interface AppConfig {
-    Locale: "vi";
+    Locale: "en";
     Messages: typeof messages;
   }
 }

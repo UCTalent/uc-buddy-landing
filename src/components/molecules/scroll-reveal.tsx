@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -42,7 +42,7 @@ export function ScrollReveal({
           observer.unobserve(el);
         }
       },
-      { threshold, rootMargin: "0px 0px -48px 0px" },
+      { threshold, rootMargin: "0px 0px -48px 0px" }
     );
 
     observer.observe(el);
@@ -56,7 +56,7 @@ export function ScrollReveal({
         "scroll-reveal transition-all duration-700 ease-out motion-reduce:translate-none motion-reduce:opacity-100 motion-reduce:transition-none",
         !visible && hiddenByDirection[direction],
         visible && "translate-x-0 translate-y-0 opacity-100",
-        className,
+        className
       )}
       style={{ transitionDelay: visible ? `${delay}ms` : "0ms" }}
     >
