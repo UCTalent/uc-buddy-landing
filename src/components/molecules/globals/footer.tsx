@@ -19,6 +19,15 @@ export const Footer = () => {
           >
             Privacy Policy
           </Link>
+
+          <span className="text-slate-300 dark:text-slate-700">|</span>
+
+          <Link
+            href="/terms-of-use"
+            className="underline underline-offset-4 transition-colors hover:text-violet-600 dark:hover:text-violet-400"
+          >
+            Terms of Use
+          </Link>
         </div>
       </div>
     </footer>
