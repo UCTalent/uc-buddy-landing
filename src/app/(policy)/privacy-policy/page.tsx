@@ -1,580 +1,455 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-// import type { Metadata } from "next";
+// import { useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-// import { PRIVACY_POLICY_METADATA } from "@/data/metadataSEO"; 
-
-// export const metadata: Metadata = PRIVACY_POLICY_METADATA; 
+import { useLegalScrollSpy } from "@/components/legal/legal-scroll-spy";
+import { LEGAL_STYLES } from '@/components/legal/legal-styles';
 
 export default function PrivacyPolicyPage() {
-  const isScrollingRef = useRef(false);
+  const { scrollToSection } = useLegalScrollSpy();
 
-  const setActive = (id: string) => {
-    const navLinks = document.querySelectorAll("[data-href]");
-
-    navLinks.forEach((link) => {
-      link.classList.remove("active-nav");
-    });
-
-    document
-      .querySelector(`[data-href="#${id}"]`)
-      ?.classList.add("active-nav");
-  };
-
-  useEffect(() => {
-    const sections = Array.from(
-      document.querySelectorAll("main section")
-    ) as HTMLElement[];
-
-    const onScroll = () => {
-      if (isScrollingRef.current) return;
-
-      const headerHeight =
-        document.querySelector("header")?.offsetHeight ?? 80;
-
-      const nearBottom =
-        window.innerHeight + window.scrollY >=
-        document.body.offsetHeight - 50;
-
-      if (nearBottom) {
-        const lastSection = sections[sections.length - 1];
-
-        if (lastSection) {
-          setActive(lastSection.id);
-        }
-
-        return;
-      }
-
-      const scrollPosition = window.scrollY + headerHeight + 140;
-
-      let currentId = sections[0]?.id;
-
-      sections.forEach((section) => {
-        if (scrollPosition >= section.offsetTop) {
-          currentId = section.id;
-        }
-      });
-
-      if (currentId) {
-        setActive(currentId);
-      }
-    };
-
-    window.addEventListener("scroll", onScroll, {
-      passive: true,
-    });
-
-    onScroll();
-
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-    };
-  }, []);
-
-  const scrollToSection =
-    (id: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
-      e.preventDefault();
-
-      const el = document.getElementById(id);
-
-      if (!el) return;
-
-      const headerHeight =
-        document.querySelector("header")?.offsetHeight ?? 80;
-
-      const top =
-        el.getBoundingClientRect().top +
-        window.scrollY -
-        headerHeight -
-        16;
-
-      setActive(id);
-
-      isScrollingRef.current = true;
-
-      window.scrollTo({
-        top,
-        behavior: "smooth",
-      });
-
-      setTimeout(() => {
-        isScrollingRef.current = false;
-      }, 500);
-    };
+  const navItems = [
+    { id: "intro", label: "Introduction" },
+    { id: "legis", label: "Legal Basis for Processing" },
+    { id: "ai-transparent", label: "AI Transparency Notice" },
+    { id: "collect", label: "What We Collect" },
+    { id: "use", label: "How We Use It" },
+    { id: "third-party", label: "Third-Party Services" },
+    { id: "international", label: "International Data Processing" },
+    { id: "ai-processing", label: "AI Processing" },
+    { id: "sharing", label: "Data Sharing" },
+    { id: "retention", label: "Data Retention" },
+    { id: "rights", label: "User Rights" },
+    { id: "deletion", label: "Account Deletion" },
+    { id: "security", label: "Security" },
+    { id: "children", label: "Children's Privacy" },
+    { id: "permissions", label: "Permissions Used" },
+    { id: "contact", label: "Contact" },
+    { id: "changes", label: "Changes" },
+  ];
 
   return (
-    <div className="min-h-screen bg-slate-50 leading-loose text-slate-900">
-      <style>{`
-        .nav-link.active-nav {
-          color: rgb(79, 70, 229);
-          border-left-color: rgb(79, 70, 229);
-          font-weight: 500;
-        }
-      `}</style>
-      
-      {/* HEADER  */}
-      <header className="sticky top-0 z-10 border-b border-slate-200 bg-white py-5">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-6">
-          {/* <Link href="/" className="flex items-center gap-2.5 no-underline">
+    <div className="min-h-screen bg-stone-50 text-stone-900">
+      <style>{LEGAL_STYLES}</style>
+    
+      {/* HEADER */}
+      <header className="sticky top-0 z-10 border-b bg-white" style={{ borderColor: 'var(--border)' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px', height: '60px', display: 'flex', alignItems: 'center' }}>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
             <Image
               src="/images/ucbuddy-logo.png"
               alt="UCBuddy Logo"
-              width={40}
-              height={40}
-              className="rounded-lg"
+              width={32}
+              height={32}
+              style={{ borderRadius: '6px' }}
               priority
             />
-            <span className="text-3xl font-semibold text-slate-900">UCBuddy</span>
-          </Link> */}
-          <Link href="#" className="flex items-center gap-2.5 no-underline">
-            <Image
-              src="/images/ucbuddy-logo.png"
-              alt="UCBuddy Logo"
-              width={40}
-              height={40}
-              className="rounded-lg"
-              priority
-            />
-            <span className="text-3xl font-semibold text-slate-900">UCBuddy</span>
+            <span style={{ fontFamily: 'var(--sans)', fontWeight: 600, fontSize: '16px', color: 'var(--ink)', letterSpacing: '-0.01em' }}>UCBuddy</span>
           </Link>
+          <span style={{ marginLeft: '16px', fontFamily: 'var(--sans)', fontSize: '13px', color: 'var(--ink-faint)', paddingLeft: '16px', borderLeft: '1px solid var(--border)' }}>Privacy Policy</span>
         </div>
       </header>
 
-      {/* PAGE GRID  */}
-      <div className="mx-auto grid max-w-4xl grid-cols-1 items-start gap-12 px-4 py-12 lg:grid-cols-[200px_1fr] lg:gap-30 lg:py-20">
-        
+      {/* PAGE LAYOUT */}
+      <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px', display: 'grid', gridTemplateColumns: '1fr', gap: '0' }} className="lg:grid-cols-page">
+        <style>{`
+          @media (min-width: 1024px) {
+            .lg\\:grid-cols-page { grid-template-columns: 200px 1fr !important; gap: 64px !important; }
+          }
+        `}</style>
+
         {/* SIDEBAR */}
-        <aside className="sticky top-[85px] hidden pt-12 lg:block">
-          <p className="mb-3 text-base font-medium tracking-wider text-slate-500 uppercase">Contents</p>
-          <nav className="flex flex-col space-y-0.5">
-            {[
-              { id: "intro", label: "Introduction" },
-              { id: "collect", label: "What We Collect" },
-              { id: "use", label: "How We Use It" },
-              { id: "third-party", label: "Third-Party Services" },
-              { id: "ai", label: "AI Processing" },
-              { id: "sharing", label: "Data Sharing" },
-              { id: "retention", label: "Data Retention" },
-              { id: "rights", label: "User Rights" },
-              { id: "security", label: "Security" },
-              { id: "children", label: "Children's Privacy" },
-              { id: "permissions", label: "Permissions" },
-              { id: "contact", label: "Contact" },
-              { id: "changes", label: "Changes" },
-            ].map((item) => (
-              <a
-                key={item.id}
-                data-href={`#${item.id}`}
-                href={`#${item.id}`}
-                onClick={scrollToSection(item.id)}
-                className="nav-link block border-l-2 border-transparent px-2.5 py-1 text-base text-slate-600 transition-colors duration-150 hover:border-indigo-600 hover:text-indigo-600"
-              >
-                {item.label}
-              </a>
-            ))}
-          </nav>
+        <aside style={{ display: 'none' }} className="lg-sidebar">
+          <style>{`
+            @media (min-width: 1024px) {
+              .lg-sidebar { display: block !important; padding-top: 56px; }
+              .lg-sidebar-inner { position: sticky; top: 84px; }
+            }
+          `}</style>
+          <div className="lg-sidebar-inner">
+            <p style={{ fontFamily: 'var(--sans)', fontSize: '10px', fontWeight: 600, letterSpacing: '0.08em', color: 'var(--ink-faint)', textTransform: 'uppercase', marginBottom: '12px', paddingLeft: '12px' }}>Contents</p>
+            <nav style={{ display: 'flex', flexDirection: 'column' }}>
+              {navItems.map((item) => (
+                <a
+                  key={item.id}
+                  data-href={`#${item.id}`}
+                  href={`#${item.id}`}
+                  onClick={scrollToSection(item.id)}
+                  className="nav-link"
+                >
+                  {item.label}
+                </a>
+              ))}
+            </nav>
+          </div>
         </aside>
 
-        {/* MAIN */}
-        <main className="pt-12 lg:pt-0">
-          <h1 className="mb-3 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">UCBuddy Privacy Policy</h1>
-          <p className="mb-12 text-xl text-slate-600">
-            This policy describes how UCBuddy collects, uses, stores, and protects your information.
-            By using UCBuddy, you acknowledge that you have read and understood this policy.
-          </p>
-
-          {/* 1. INTRO  */}
-          <section id="intro" className="mb-11">
-            <div className="mb-3.5 flex items-center gap-2.5 border-b border-slate-200 pb-3">
-              <span className="rounded border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-sm font-medium text-indigo-600">
-                01
-              </span>
-              <h2 className="text-3xl font-bold text-slate-900">Introduction</h2>
-            </div>
-            <p className="mb-4 text-lg text-slate-600">
-              UCBuddy is an AI-powered CV builder and career assistance platform that helps users
-              create, improve, organize, and manage professional resumes. The platform leverages
-              artificial intelligence to assist with resume generation, CV optimization, grammar
-              improvement, career guidance, and professional PDF export.
+        {/* MAIN CONTENT */}
+        <main style={{ paddingTop: '48px', paddingBottom: '80px' }}>
+          
+          {/* Page Header */}
+          <div style={{ marginBottom: '48px', paddingBottom: '32px', borderBottom: '1px solid var(--border)' }}>
+            <p style={{ fontFamily: 'var(--sans)', fontSize: '12px', fontWeight: 500, letterSpacing: '0.06em', color: 'var(--ink-faint)', textTransform: 'uppercase', marginBottom: '12px' }}>Legal Document</p>
+            <h1 className="pp-serif" style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.02em', marginBottom: '16px', lineHeight: 1.2 }}>UCBuddy Privacy Policy</h1>
+            <p className="body-text" style={{ marginBottom: '10px' }}>
+              Welcome to UCBuddy. This Privacy Policy describes how we collect, use, store, and protect your information when you use our AI-powered CV builder and career assistant services.
             </p>
-            <p className="text-xl leading-8 text-slate-600">
-              UCBuddy is designed to support students, recent graduates, career changers, and
-              professionals throughout the job application process by providing accessible tools
-              that simplify resume creation and improve job readiness.
+            <p className="body-text" style={{ marginBottom: '10px' }}>
+              It applies to all UCBuddy products and features, including CV creation, resume optimization, AI career assistance, job matching, PDF export, and account management.
+            </p>
+            <p className="body-text">
+              By accessing or using UCBuddy, you acknowledge that you have read and understood this Privacy Policy. If you have questions about how your information is handled, please contact us at{' '}
+              <a href="mailto:support@uctalent.io" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}>support@uctalent.io</a>.
+            </p>
+          </div>
+
+          {/* 01 Introduction */}
+          <section id="intro" style={{ marginBottom: '44px' }}>
+            <div className="section-divider">
+              <span className="section-num">01</span>
+              <h2 className="section-heading">Introduction</h2>
+            </div>
+            <p className="body-text" style={{ marginBottom: '12px' }}>
+              UCBuddy is an AI-powered CV builder and career assistance platform that helps users create, improve, organize, and manage professional resumes. The platform leverages artificial intelligence to assist with resume generation, CV optimization, grammar improvement, career guidance, and professional PDF export.
+            </p>
+            <p className="body-text">
+              UCBuddy is designed to support students, recent graduates, career changers, and professionals throughout the job application process by providing accessible tools that simplify resume creation and improve job readiness.
             </p>
           </section>
 
-          {/* 2. COLLECT */}
-          <section id="collect" className="mb-11">
-            <div className="mb-3.5 flex items-center gap-2.5 border-b border-slate-200 pb-3">
-              <span className="rounded border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-sm font-medium text-indigo-600">
-                02
-              </span>
-              <h2 className="text-3xl font-bold text-slate-900">What Information We Collect</h2>
+          {/* 02 Legal Basis */}
+          <section id="legis" style={{ marginBottom: '44px' }}>
+            <div className="section-divider">
+              <span className="section-num">02</span>
+              <h2 className="section-heading">Legal Basis for Processing</h2>
             </div>
-            <p className="mb-6 text-xl text-slate-600">We collect information necessary to provide UCBuddy's features, including:</p>
-            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="rounded-lg border border-slate-200 bg-white p-4.5">
-                <p className="mb-2 text-lg font-semibold text-slate-900">Google Account</p>
-                <ul className="space-y-1.5">
-                  <li className="flex items-baseline gap-2 text-lg text-slate-600">
-                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-indigo-600"></span>
-                    Full name
-                  </li>
-                  <li className="flex items-baseline gap-2 text-lg text-slate-600">
-                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-indigo-600"></span>
-                    Email address
-                  </li>
-                  <li className="flex items-baseline gap-2 text-lg text-slate-600">
-                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-indigo-600"></span>
-                    Profile picture
-                  </li>
-                </ul>
-              </div>
-              <div className="rounded-lg border border-slate-200 bg-white p-4.5">
-                <p className="mb-2 text-lg font-semibold text-slate-900">CV Content</p>
-                <ul className="space-y-1.5">
-                  <li className="flex items-baseline gap-2 text-lg text-slate-600">
-                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-indigo-600"></span>
-                    Education
-                  </li>
-                  <li className="flex items-baseline gap-2 text-lg text-slate-600">
-                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-indigo-600"></span>
-                    Work experience
-                  </li>
-                  <li className="flex items-baseline gap-2 text-lg text-slate-600">
-                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-indigo-600"></span>
-                    Skills & projects
-                  </li>
-                  <li className="flex items-baseline gap-2 text-lg text-slate-600">
-                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-indigo-600"></span>
-                    Career objectives
-                  </li>
-                </ul>
-              </div>
-              <div className="rounded-lg border border-slate-200 bg-white p-4.5">
-                <p className="mb-2 text-lg font-semibold text-slate-900">AI Chat Data</p>
-                <ul className="space-y-1.5">
-                  <li className="flex items-baseline gap-2 text-lg text-slate-600">
-                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-indigo-600"></span>
-                    Messages and prompts submitted to AI
-                  </li>
-                  <li className="flex items-baseline gap-2 text-lg text-slate-600">
-                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-indigo-600"></span>
-                    AI-generated responses
-                  </li>
-                </ul>
-              </div>
-              <div className="rounded-lg border border-slate-200 bg-white p-4.5">
-                <p className="mb-2 text-lg font-semibold text-slate-900">Usage & Analytics</p>
-                <ul className="space-y-1.5">
-                  <li className="flex items-baseline gap-2 text-lg text-slate-600">
-                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-indigo-600"></span>
-                    App version
-                  </li>
-                  <li className="flex items-baseline gap-2 text-lg text-slate-600">
-                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-indigo-600"></span>
-                    Device type & OS
-                  </li>
-                  <li className="flex items-baseline gap-2 text-lg text-slate-600">
-                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-indigo-600"></span>
-                    Usage events
-                  </li>
-                  <li className="flex items-baseline gap-2 text-lg text-slate-600">
-                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-indigo-600"></span>
-                    Crash reports
-                  </li>
-                </ul>
-              </div>
+            <p className="body-text" style={{ marginBottom: '20px' }}>UCBuddy processes personal information based on one or more of the following grounds, where applicable:</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+              {[
+                { num: '01', title: 'User Consent', body: 'Explicitly provided by users when registering or using specific features.' },
+                { num: '02', title: 'Performance of Services', body: 'Necessary to deliver the services requested by the user (e.g., CV building, AI chat, PDF export).' },
+                { num: '03', title: 'Legal Obligations', body: 'To fulfill legal requirements under applicable laws and regulations.' },
+                { num: '04', title: 'Legitimate Interests', body: 'For platform security, fraud prevention, and technical maintenance, where permitted by applicable law.' },
+              ].map((card) => (
+                <div key={card.num} className="basis-card">
+                  <div className="basis-card-num">{card.num}</div>
+                  <div className="basis-card-title">{card.title}</div>
+                  <div className="basis-card-body">{card.body}</div>
+                </div>
+              ))}
             </div>
-            <p className="mt-4 text-xl text-slate-600">
-              We may also collect avatar photos and other images you upload for use in your resumes
-              and profiles.
-            </p>
-          </section>
-
-          {/* 3. USE */}
-          <section id="use" className="mb-11">
-            <div className="mb-3.5 flex items-center gap-2.5 border-b border-slate-200 pb-3">
-              <span className="rounded border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-sm font-medium text-indigo-600">
-                03
-              </span>
-              <h2 className="text-3xl font-bold text-slate-900">How We Use Your Information</h2>
-            </div>
-            <p className="mb-6 text-xl text-slate-600">We use your information to provide, maintain, and improve UCBuddy services:</p>
-            <ul className="mt-3.5 space-y-2">
-              <li className="flex items-baseline gap-2.5 border-b border-slate-200 py-2.5 text-xl text-slate-600">
-                <span className="shrink-0 text-lg text-indigo-600">→</span>
-                Create and manage your account
-              </li>
-              <li className="flex items-baseline gap-2.5 border-b border-slate-200 py-2.5 text-xl text-slate-600">
-                <span className="shrink-0 text-lg text-indigo-600">→</span>
-                Generate and optimize CV content
-              </li>
-              <li className="flex items-baseline gap-2.5 border-b border-slate-200 py-2.5 text-xl text-slate-600">
-                <span className="shrink-0 text-lg text-indigo-600">→</span>
-                Provide AI-powered career assistance
-              </li>
-              <li className="flex items-baseline gap-2.5 border-b border-slate-200 py-2.5 text-xl text-slate-600">
-                <span className="shrink-0 text-lg text-indigo-600">→</span>
-                Match resumes with job descriptions
-              </li>
-              <li className="flex items-baseline gap-2.5 border-b border-slate-200 py-2.5 text-xl text-slate-600">
-                <span className="shrink-0 text-lg text-indigo-600">→</span>
-                Generate and export professional PDF resumes
-              </li>
-              <li className="flex items-baseline gap-2.5 border-b border-slate-200 py-2.5 text-xl text-slate-600">
-                <span className="shrink-0 text-lg text-indigo-600">→</span>
-                Improve application performance and diagnose issues
-              </li>
-              <li className="flex items-baseline gap-2.5 border-b border-slate-200 py-2.5 text-xl text-slate-600">
-                <span className="shrink-0 text-lg text-indigo-600">→</span>
-                Analyze product usage and enhance user experience
-              </li>
-              <li className="flex items-baseline gap-2.5 py-2.5 text-xl text-slate-600">
-                <span className="shrink-0 text-lg text-indigo-600">→</span>
-                Maintain security and reliability of our services
-              </li>
-            </ul>
-          </section>
-
-          {/* 4. THIRD PARTY  */}
-          <section id="third-party" className="mb-11">
-            <div className="mb-3.5 flex items-center gap-2.5 border-b border-slate-200 pb-3">
-              <span className="rounded border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-sm font-medium text-indigo-600">
-                04
-              </span>
-              <h2 className="text-3xl font-bold text-slate-900">Third-Party Services</h2>
-            </div>
-            <p className="mb-6 text-xl text-slate-600">
-              UCBuddy integrates with the following third-party services to deliver its features:
-            </p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <span className="rounded border border-slate-300 bg-slate-100 px-3 py-1.5 text-lg font-medium text-slate-900">
-                Google Sign-In
-              </span>
-              <span className="rounded border border-slate-300 bg-slate-100 px-3 py-1.5 text-lg font-medium text-slate-900">
-                Firebase Analytics
-              </span>
-              <span className="rounded border border-slate-300 bg-slate-100 px-3 py-1.5 text-lg font-medium text-slate-900">
-                Firebase Crashlytics
-              </span>
-              <span className="rounded border border-slate-300 bg-slate-100 px-3 py-1.5 text-lg font-medium text-slate-900">
-                Firebase Cloud Storage
-              </span>
-              <span className="rounded border border-slate-300 bg-slate-100 px-3 py-1.5 text-lg font-medium text-slate-900">
-                Google Gemini API
-              </span>
+            <div className="callout">
+              <strong>Your Privacy Rights:</strong> Where consent is the primary legal basis, users may withdraw their consent at any time through the application settings. Please note that withdrawing consent may limit or disable certain features of the Services.
             </div>
           </section>
 
-          {/* 5. AI */}
-          <section id="ai" className="mb-11">
-            <div className="mb-3.5 flex items-center gap-2.5 border-b border-slate-200 pb-3">
-              <span className="rounded border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-sm font-medium text-indigo-600">
-                05
-              </span>
-              <h2 className="text-3xl font-bold text-slate-900">AI Processing</h2>
+          {/* 03 AI Transparency */}
+          <section id="ai-transparent" style={{ marginBottom: '44px' }}>
+            <div className="section-divider">
+              <span className="section-num">03</span>
+              <h2 className="section-heading">AI Transparency Notice</h2>
             </div>
-            <p className="mb-6 text-xl text-slate-600">
-              To provide AI-powered features, certain CV content, resume information, and user
-              prompts may be transmitted to third-party AI service providers for processing and
-              response generation.
+            <p className="body-text" style={{ marginBottom: '12px' }}>
+              UCBuddy features advanced tools powered by Artificial Intelligence ("AI"), including resume generation, resume optimization, career guidance, job matching, and AI chat. We are committed to transparency: you will always be notified via the application interface when interacting with AI features or viewing AI-generated content.
             </p>
-            <div className="mt-5 rounded-lg border border-indigo-200 bg-indigo-50 p-5 text-xl leading-8 text-indigo-900">
-              Information sent to AI providers is processed solely for generating responses and delivering requested AI-powered features.
-            </div>
-          </section>
-
-          {/* 6. SHARING */}
-          <section id="sharing" className="mb-11">
-            <div className="mb-3.5 flex items-center gap-2.5 border-b border-slate-200 pb-3">
-              <span className="rounded border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-sm font-medium text-indigo-600">
-                06
-              </span>
-              <h2 className="text-3xl font-bold text-slate-900">Data Sharing</h2>
-            </div>
-            <p className="mb-4 text-lg text-slate-600">
-              <strong>We do not sell personal information.</strong>
-            </p>
-            <p className="text-lg text-slate-600">
-              Information may be shared with third-party service providers that support
-              authentication, cloud storage, analytics, crash reporting, and AI-powered features.
-              These providers are only permitted to process information as necessary to deliver
-              their services to UCBuddy.
+            <p className="body-text">
+              <strong style={{ color: 'var(--ink)', fontWeight: 500 }}>Important disclaimer:</strong> AI-generated outputs are provided solely as assistive suggestions and do not constitute professional, career, legal, financial, or employment advice. Users retain sole responsibility for reviewing, verifying, and evaluating all AI content before using or relying on it. For more detailed information on how we process AI data, please see the <strong style={{ color: 'var(--ink)', fontWeight: 500 }}>AI Processing & Automated Recommendations</strong> section below.
             </p>
           </section>
 
-          {/* 7. RETENTION */}
-          <section id="retention" className="mb-11">
-            <div className="mb-3.5 flex items-center gap-2.5 border-b border-slate-200 pb-3">
-              <span className="rounded border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-sm font-medium text-indigo-600">
-                07
-              </span>
-              <h2 className="text-3xl font-bold text-slate-900">Data Retention</h2>
+          {/* 04 What We Collect */}
+          <section id="collect" style={{ marginBottom: '44px' }}>
+            <div className="section-divider">
+              <span className="section-num">04</span>
+              <h2 className="section-heading">What Information We Collect</h2>
             </div>
-            <p className="mb-4 text-lg text-slate-600">
-              We retain user information for as long as necessary to provide UCBuddy services,
-              including account management, CV generation, AI assistance, and resume storage.
-            </p>
-            <p className="text-lg text-slate-600">
-              Certain information may be retained where required by law or for security, fraud
-              prevention, and troubleshooting purposes.
+            <p className="body-text" style={{ marginBottom: '20px' }}>We collect information necessary to provide UCBuddy's features, including:</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '12px' }}>
+              {[
+                { title: 'Google Account', items: ['Full name', 'Email address', 'Profile picture'] },
+                { title: 'CV Content', items: ['Education', 'Work experience', 'Skills & projects', 'Career objectives'] },
+                { title: 'AI Chat Data', items: ['Messages sent to AI', 'AI-generated responses'] },
+                { title: 'Usage & Analytics', items: ['App version', 'Device type & OS', 'Usage events', 'Crash reports'] },
+              ].map((card) => (
+                <div key={card.title} className="data-card">
+                  <div className="data-card-title">{card.title}</div>
+                  <ul className="pp-list">
+                    {card.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+            <p className="body-text" style={{ marginTop: '16px' }}>
+              We may also collect avatar photos and other images you upload for use in your resumes and profiles. This information is used to improve application performance, monitor crashes, diagnose technical issues, and enhance the overall user experience.
             </p>
           </section>
 
-          {/* 8. RIGHTS */}
-          <section id="rights" className="mb-11">
-            <div className="mb-3.5 flex items-center gap-2.5 border-b border-slate-200 pb-3">
-              <span className="rounded border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-sm font-medium text-indigo-600">
-                08
-              </span>
-              <h2 className="text-3xl font-bold text-slate-900">User Rights & Account Deletion</h2>
+          {/* 05 How We Use It */}
+          <section id="use" style={{ marginBottom: '44px' }}>
+            <div className="section-divider">
+              <span className="section-num">05</span>
+              <h2 className="section-heading">How We Use Your Information</h2>
             </div>
-            <p className="mb-4 text-lg text-slate-600">
-              You have the right to access, correct, or delete your personal information, and to
-              withdraw consent at any time.
-            </p>
-            <p className="text-lg text-slate-600">
-              To request deletion of your account and associated data, contact us at{" "}
-              <a href="mailto:support@uctalent.io" className="font-medium text-indigo-600 hover:text-indigo-700">
-                support@uctalent.io
-              </a>
-              . Upon receiving a verified request, we will delete or anonymize your information
-              unless retention is required by law, security obligations, or legitimate business
-              purposes.
-            </p>
-          </section>
-
-          {/* 9. SECURITY */}
-          <section id="security" className="mb-11">
-            <div className="mb-3.5 flex items-center gap-2.5 border-b border-slate-200 pb-3">
-              <span className="rounded border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-sm font-medium text-indigo-600">
-                09
-              </span>
-              <h2 className="text-3xl font-bold text-slate-900">Security</h2>
+            <p className="body-text" style={{ marginBottom: '20px' }}>We use your information to provide, maintain, and improve UCBuddy services. Here's how your data is utilized:</p>
+            <div className="data-card" style={{ padding: '0 20px' }}>
+              {[
+                { title: 'Account & Authentication', items: ['Create and manage your account'] },
+                { title: 'Core CV & Resume Services', items: ['Generate and optimize CV content', 'Generate and export professional PDF resumes'] },
+                { title: 'AI-Powered Assistance', items: ['Provide AI-powered career assistance and guidance', 'Match resumes with job descriptions', 'Analyze resume content to generate career recommendations, compatibility scores, and job matching suggestions'] },
+                { title: 'Analytics & Improvement', items: ['Improve application performance and diagnose technical issues', 'Analyze product usage patterns and enhance user experience'] },
+                { title: 'Security & Maintenance', items: ['Maintain security and reliability of our services'] },
+              ].map((cat) => (
+                <div key={cat.title} className="use-cat">
+                  <div className="use-cat-title">{cat.title}</div>
+                  <ul className="pp-list">
+                    {cat.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
-            <p className="mb-4 text-lg text-slate-600">
-              We implement reasonable technical and organizational measures to protect user
-              information against unauthorized access, disclosure, or loss.
-            </p>
-            <p className="text-lg text-slate-600">
-              While we strive to protect your information, no method of electronic transmission or
-              storage is completely secure, and we cannot guarantee absolute security.
-            </p>
-          </section>
-
-          {/* 10. CHILDREN */}
-          <section id="children" className="mb-11">
-            <div className="mb-3.5 flex items-center gap-2.5 border-b border-slate-200 pb-3">
-              <span className="rounded border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-sm font-medium text-indigo-600">
-                10
-              </span>
-              <h2 className="text-3xl font-bold text-slate-900">Children's Privacy</h2>
-            </div>
-            <p className="text-lg text-slate-600">
-              UCBuddy is not intended for children under the age of 13. We do not knowingly collect
-              personal information from children. If we become aware that such information has been
-              collected, we will take reasonable steps to delete it.
-            </p>
-          </section>
-
-          {/* 11. PERMISSIONS */}
-          <section id="permissions" className="mb-11">
-            <div className="mb-3.5 flex items-center gap-2.5 border-b border-slate-200 pb-3">
-              <span className="rounded border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-sm font-medium text-indigo-600">
-                11
-              </span>
-              <h2 className="text-3xl font-bold text-slate-900">App Permissions</h2>
-            </div>
-            <p className="mb-4 text-xl text-slate-600">UCBuddy requests the following device permissions:</p>
-            <div className="mt-5 overflow-hidden rounded-lg border border-slate-200">
-              <div className="grid grid-cols-1 divide-y border-b border-slate-200 md:grid-cols-[180px_1fr] md:divide-y-0">
-                <span className="border-slate-200 bg-indigo-50 px-4 py-3.5 text-lg font-semibold text-indigo-600 md:border-r">
-                  RECORD_AUDIO
-                </span>
-                <span className="px-4 py-3.5 text-lg text-slate-600">
-                  Supports voice-to-text within the AI chat feature. Audio is only recorded when the
-                  user explicitly initiates voice input.
-                </span>
-              </div>
-              <div className="grid grid-cols-1 divide-y border-b border-slate-200 md:grid-cols-[180px_1fr] md:divide-y-0">
-                <span className="border-slate-200 bg-indigo-50 px-4 py-3.5 text-lg font-semibold text-indigo-600 md:border-r">
-                  READ_MEDIA_
-                  IMAGES
-                </span>
-                <span className="px-4 py-3.5 text-lg text-slate-600">
-                  Allows users to select profile photos and images from their device gallery for use
-                  in resumes and profiles.
-                </span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-[180px_1fr]">
-                <span className="border-slate-200 bg-indigo-50 px-4 py-3.5 text-lg font-semibold text-indigo-600 md:border-r">
-                  INTERNET
-                </span>
-                <span className="px-4 py-3.5 text-lg text-slate-600">
-                  Required to access AI services, synchronize user data, retrieve templates, and
-                  support analytics and crash reporting.
-                </span>
-              </div>
+            <div className="callout-neutral">
+              <strong style={{ color: 'var(--ink)', fontWeight: 500 }}>Note:</strong> We only use your information for the purposes described above and as required by law. Your data is never used for purposes beyond what you've consented to or what is necessary to operate UCBuddy.
             </div>
           </section>
 
-          {/* 12. CONTACT */}
-          <section id="contact" className="mb-11">
-            <div className="mb-3.5 flex items-center gap-2.5 border-b border-slate-200 pb-3">
-              <span className="rounded border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-base font-medium text-indigo-600">
-                12
-              </span>
-              <h2 className="text-3xl font-bold text-slate-900">Contact Information</h2>
+          {/* 06 Third-Party Services */}
+          <section id="third-party" style={{ marginBottom: '44px' }}>
+            <div className="section-divider">
+              <span className="section-num">06</span>
+              <h2 className="section-heading">Third-Party Services</h2>
             </div>
-            <p className="mb-6 text-xl text-slate-600">
-              If you have questions about this Privacy Policy or wish to exercise your privacy
-              rights, please reach out:
+            <p className="body-text" style={{ marginBottom: '20px' }}>UCBuddy integrates with the following third-party services to deliver its features:</p>
+            <div className="data-card" style={{ padding: '0 20px' }}>
+              {[
+                { name: 'Google Sign-In', desc: 'For secure user authentication and account management' },
+                { name: 'Firebase Services', desc: 'For analytics, crash reporting, and application monitoring' },
+                { name: 'Supabase', desc: 'For database, cloud storage, and backend infrastructure' },
+                { name: 'Google Gemini API', desc: 'For AI-powered resume generation, optimization, and career assistance' },
+              ].map((tp) => (
+                <div key={tp.name} className="tp-item">
+                  <div style={{ flexShrink: 0, marginTop: '2px' }}>
+                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--border-strong)', marginTop: '6px' }}></div>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: 'var(--sans)', fontSize: '14px', fontWeight: 500, color: 'var(--ink)', marginBottom: '3px' }}>{tp.name}</div>
+                    <div style={{ fontFamily: 'var(--sans)', fontSize: '13.5px', color: 'var(--ink-muted)', lineHeight: 1.55 }}>{tp.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 07 International Data Processing */}
+          <section id="international" style={{ marginBottom: '44px' }}>
+            <div className="section-divider">
+              <span className="section-num">07</span>
+              <h2 className="section-heading">International Data Processing</h2>
+            </div>
+            <p className="body-text" style={{ marginBottom: '12px' }}>
+              Certain third-party service providers used by UCBuddy, including cloud infrastructure, analytics, authentication, and AI service providers, may process or store information on servers located outside of Vietnam.
             </p>
-            <div className="mt-5 flex items-center gap-3.5 rounded-lg border border-slate-200 bg-white p-6">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50">
-                <svg
-                  viewBox="0 0 24 24"
-                  className="h-5 w-5 stroke-indigo-600"
-                  fill="none"
-                  strokeWidth="1.8"
-                >
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                  <polyline points="22,6 12,13 2,6" />
+            <p className="body-text" style={{ marginBottom: '12px' }}>
+              As a result, personal information is transferred to, processed, and stored in jurisdictions that may provide different levels of data protection than those available under the laws of your country of residence.
+            </p>
+            <p className="body-text">
+              UCBuddy takes reasonable measures to help ensure that international data transfers are conducted with appropriate safeguards designed to protect personal information and maintain a level of protection consistent with applicable privacy and data protection laws.
+            </p>
+          </section>
+
+          {/* 08 AI Processing */}
+          <section id="ai-processing" style={{ marginBottom: '44px' }}>
+            <div className="section-divider">
+              <span className="section-num">08</span>
+              <h2 className="section-heading">AI Processing</h2>
+            </div>
+            {[
+              "To provide AI-powered features, certain CV content, resume information, uploaded documents, and user prompts will be transmitted to third-party AI service providers for processing and response generation.",
+              "AI technologies are used to assist with resume generation, resume optimization, career guidance, content recommendations, compatibility scoring, and job matching functionalities.",
+              "Users are informed that recommendations, scores, suggestions, and other outputs generated through these features may be produced wholly or partially by artificial intelligence systems.",
+              "AI-generated outputs are intended solely to support user decision-making and should not be considered final employment, recruitment, hiring, admission, legal, financial, or career decisions.",
+              "While we strive to improve the quality and accuracy of AI-generated outputs, such outputs may contain inaccuracies, omissions, outdated information, or recommendations that may not be suitable for every individual situation. Users should independently review and verify AI-generated content before relying on it.",
+              "UCBuddy maintains appropriate human oversight over the design, operation, and monitoring of its AI-powered services. AI-generated outputs are intended to support users and remain subject to human review and judgment.",
+              "UCBuddy does not use AI systems to make fully autonomous employment, hiring, admission, legal, or financial decisions on behalf of users.",
+              "Where AI-generated recommendations may relate to career opportunities or employment-related suggestions, such recommendations are intended to support human judgment and are not used as the sole basis for decision-making.",
+            ].map((para, i) => (
+              <p key={i} className="body-text" style={{ marginBottom: '12px' }}>{para}</p>
+            ))}
+          </section>
+
+          {/* 09 Data Sharing */}
+          <section id="sharing" style={{ marginBottom: '44px' }}>
+            <div className="section-divider">
+              <span className="section-num">09</span>
+              <h2 className="section-heading">Data Sharing</h2>
+            </div>
+            <div className="callout" style={{ marginTop: 0, marginBottom: '20px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+              <span style={{ fontSize: '15px', flexShrink: 0, marginTop: '1px' }}>✓</span>
+              <span><strong>We do not sell personal information.</strong> UCBuddy does not sell, rent, trade, or otherwise disclose your personal information to third parties for their marketing or commercial purposes.</span>
+            </div>
+            <div className="data-card" style={{ padding: '0 20px' }}>
+              {[
+                { title: 'Third-Party Service Providers', body: 'Information may be shared with trusted third-party service providers that support authentication, cloud storage, analytics, crash reporting, and AI-powered features. These providers are contractually obligated to process information only as necessary to deliver their services to UCBuddy and must comply with applicable privacy and data protection laws.' },
+                { title: 'Recruitment & Job Matching Programs', body: 'Where users choose to participate in job matching or career opportunity programs, and where required by applicable law or platform settings, we will request additional explicit consent before sharing relevant professional profile information with authorized recruitment personnel, hiring partners, headhunters, talent acquisition specialists, and members of the UCTalent Operations Team. Information shared for recruitment purposes is limited to what is necessary to facilitate job matching and career opportunities.' },
+                { title: 'Legal Compliance & Obligations', body: 'All data sharing is performed in strict accordance with applicable privacy and data protection laws, regulations, and legal requirements. We may disclose information where required by law or where we have a legitimate legal basis to do so.' },
+              ].map((cat) => (
+                <div key={cat.title} className="share-cat">
+                  <div className="share-cat-title">{cat.title}</div>
+                  <div style={{ fontFamily: 'var(--sans)', fontSize: '14px', lineHeight: 1.65, color: 'var(--ink-muted)' }}>{cat.body}</div>
+                </div>
+              ))}
+            </div>
+            <div className="callout" style={{ marginTop: '16px' }}>
+              You have the right to control how your information is shared. You can manage your consent preferences and data sharing settings at any time through your account settings or by contacting us directly.
+            </div>
+          </section>
+
+          {/* 10 Data Retention */}
+          <section id="retention" style={{ marginBottom: '44px' }}>
+            <div className="section-divider">
+              <span className="section-num">10</span>
+              <h2 className="section-heading">Data Retention</h2>
+            </div>
+            <p className="body-text" style={{ marginBottom: '12px' }}>
+              We retain user information for as long as necessary to provide UCBuddy services, including account management, CV generation, AI assistance, and resume storage.
+            </p>
+            <p className="body-text">
+              Certain information may be retained where required by law or for security, fraud prevention, and troubleshooting purposes.
+            </p>
+          </section>
+
+          {/* 11 User Rights */}
+          <section id="rights" style={{ marginBottom: '44px' }}>
+            <div className="section-divider">
+              <span className="section-num">11</span>
+              <h2 className="section-heading">User Rights</h2>
+            </div>
+            <p className="body-text" style={{ marginBottom: '20px' }}>
+              Users may exercise their rights under applicable local laws by contacting us at{' '}
+              <a href="mailto:support@uctalent.io" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}>support@uctalent.io</a>.
+              These rights include:
+            </p>
+            <div className="data-card" style={{ padding: '0 20px' }}>
+              {[
+                { title: 'Access and Portability', desc: 'Request access to and receive copies of your personal information.' },
+                { title: 'Correction', desc: 'Request the correction or updating of inaccurate or incomplete data.' },
+                { title: 'Deletion', desc: 'Request the deletion or anonymization of your data (or utilize the self-service account deletion feature in the app settings).' },
+                { title: 'Withdraw Consent', desc: 'Withdraw your consent for data processing at any time.' },
+                { title: 'Restriction and Objection', desc: 'Request that we temporarily restrict or pause the processing of your data or object to specific processing activities.' },
+                { title: 'AI Transparency', desc: 'Request information regarding how your data is processed through our AI-assisted systems.' },
+                { title: 'Lodge a Complaint', desc: 'File a complaint with competent data protection authorities if you believe your privacy rights have been violated.' },
+              ].map((right) => (
+                <div key={right.title} className="rights-item">
+                  <div className="rights-dot"></div>
+                  <div>
+                    <div className="rights-title">{right.title}</div>
+                    <div className="rights-desc">{right.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 12 Account Deletion */}
+          <section id="deletion" style={{ marginBottom: '44px' }}>
+            <div className="section-divider">
+              <span className="section-num">12</span>
+              <h2 className="section-heading">Account Deletion</h2>
+            </div>
+            <p className="body-text">
+              Users can delete their account and all associated personal data directly within the UCBuddy app settings. Upon receiving a verified request, we will delete or anonymize personal information unless retention is required by law, security obligations, or legitimate business purposes.
+            </p>
+          </section>
+
+          {/* 13 Security */}
+          <section id="security" style={{ marginBottom: '44px' }}>
+            <div className="section-divider">
+              <span className="section-num">13</span>
+              <h2 className="section-heading">Security</h2>
+            </div>
+            <p className="body-text" style={{ marginBottom: '12px' }}>
+              We implement reasonable technical and organizational measures to protect user information against unauthorized access, disclosure, or loss.
+            </p>
+            <p className="body-text">
+              While we strive to protect your information, no method of electronic transmission or storage is completely secure, and we cannot guarantee absolute security.
+            </p>
+          </section>
+
+          {/* 14 Children's Privacy */}
+          <section id="children" style={{ marginBottom: '44px' }}>
+            <div className="section-divider">
+              <span className="section-num">14</span>
+              <h2 className="section-heading">Children's Privacy</h2>
+            </div>
+            <p className="body-text">
+              UCBuddy is intended for users aged 16 and above. We do not knowingly collect personal information from children under the age required by applicable law. If we become aware that such information has been collected, we will take reasonable steps to delete it.
+            </p>
+          </section>
+
+          {/* 15 Permissions */}
+          <section id="permissions" style={{ marginBottom: '44px' }}>
+            <div className="section-divider">
+              <span className="section-num">15</span>
+              <h2 className="section-heading">App Permissions</h2>
+            </div>
+            <p className="body-text" style={{ marginBottom: '20px' }}>UCBuddy requests the following device permissions:</p>
+            <div className="data-card" style={{ padding: 0, overflow: 'hidden' }}>
+              {[
+                { key: 'RECORD_AUDIO', val: 'Supports voice-to-text within the AI chat feature. Audio is only recorded when the user explicitly initiates voice input.' },
+                { key: 'READ_MEDIA_IMAGES', val: 'Allows users to select profile photos and images from their device gallery for use in resumes and profiles.' },
+                { key: 'INTERNET', val: 'Required to access AI services, synchronize user data, retrieve templates, and support analytics and crash reporting.' },
+              ].map((perm) => (
+                <div key={perm.key} className="perm-row">
+                  <div className="perm-key">{perm.key}</div>
+                  <div className="perm-val">{perm.val}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 16 Contact */}
+          <section id="contact" style={{ marginBottom: '44px' }}>
+            <div className="section-divider">
+              <span className="section-num">16</span>
+              <h2 className="section-heading">Contact Information</h2>
+            </div>
+            <p className="body-text" style={{ marginBottom: '20px' }}>
+              If you have questions about this Privacy Policy or wish to exercise your privacy rights, please reach out:
+            </p>
+            <div className="data-card" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '6px', background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent)" strokeWidth="1.8">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                  <polyline points="22,6 12,13 2,6"/>
                 </svg>
               </div>
               <div>
-                <p className="mb-0.5 text-base text-slate-500">Email us at</p>
-                <a href="mailto:support@uctalent.io" className="text-lg font-medium text-indigo-600 hover:text-indigo-700">
-                  support@uctalent.io
-                </a>
+                <div style={{ fontFamily: 'var(--sans)', fontSize: '12px', color: 'var(--ink-faint)', marginBottom: '3px' }}>Email us at</div>
+                <a href="mailto:support@uctalent.io" style={{ fontFamily: 'var(--sans)', fontSize: '14px', fontWeight: 500, color: 'var(--accent)', textDecoration: 'none' }}>support@uctalent.io</a>
               </div>
             </div>
           </section>
 
-          {/* 13. CHANGES */}
-          <section id="changes" className="mb-11">
-            <div className="mb-3.5 flex items-center gap-2.5 border-b border-slate-200 pb-3">
-              <span className="rounded border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-base font-medium text-indigo-600">
-                13
-              </span>
-              <h2 className="text-3xl font-bold text-slate-900">Changes to This Policy</h2>
+          {/* 17 Changes */}
+          <section id="changes" style={{ marginBottom: '44px' }}>
+            <div className="section-divider">
+              <span className="section-num">17</span>
+              <h2 className="section-heading">Changes to This Policy</h2>
             </div>
-            <p className="text-lg text-slate-600">
-              We may update this Privacy Policy from time to time. Any changes will be posted on
-              this page with an updated Effective Date. Continued use of UCBuddy after changes
-              become effective constitutes acceptance of the revised Privacy Policy.
+            <p className="body-text">
+              We may update this Privacy Policy from time to time. Any changes will be posted on this page with an updated Effective Date. Continued use of UCBuddy after changes become effective constitutes acceptance of the revised Privacy Policy.
             </p>
           </section>
 
-          <footer className="mt-12 flex flex-col items-center justify-between gap-1.5 border-t border-slate-200 pt-6 text-base text-slate-500 md:flex-row md:gap-0">
-            <span>© 2026 UCBuddy · uctalent.io</span>
-            <span>Effective Date: May 21, 2026</span>
+          {/* Footer */}
+          <footer style={{ marginTop: '48px', paddingTop: '24px', borderTop: '1px solid var(--border)', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '8px' }}>
+            <span style={{ fontFamily: 'var(--sans)', fontSize: '13px', color: 'var(--ink-faint)' }}>© 2026 UCBuddy · uctalent.io</span>
+            <span style={{ fontFamily: 'var(--sans)', fontSize: '13px', color: 'var(--ink-faint)' }}>Effective Date: June 2, 2026</span>
           </footer>
         </main>
       </div>
