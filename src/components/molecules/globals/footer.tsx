@@ -28,6 +28,15 @@ export const Footer = () => {
           >
             Terms of Use
           </Link>
+
+          <span className="text-slate-300 dark:text-slate-700">|</span>
+
+          <Link
+            href="/delete-account"
+            className="underline underline-offset-4 transition-colors hover:text-violet-600 dark:hover:text-violet-400"
+          >
+            Delete Account
+          </Link>
         </div>
       </div>
     </footer>
