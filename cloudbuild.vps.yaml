@@ -218,7 +218,7 @@ steps:
         echo "> Health check Green container..."
         HEALTHY=0
         for i in $$(seq 1 120); do
-          if timeout 5 sudo docker exec "$$GREEN_CONTAINER" timeout 5 sh -c "echo >/dev/tcp/127.0.0.1/$_PORT" 2>/dev/null; then
+          if timeout 5 sudo docker exec "$$GREEN_CONTAINER" sh -c "wget -qO- http://127.0.0.1:$_PORT >/dev/null 2>&1 || curl -sf http://127.0.0.1:$_PORT >/dev/null 2>&1 || python3 -c \"import urllib.request; urllib.request.urlopen(\'http://127.0.0.1:$_PORT\')\" >/dev/null 2>&1 || python -c \"import urllib.request; urllib.request.urlopen(\'http://127.0.0.1:$_PORT\')\" >/dev/null 2>&1 || node -e \"require(\'http\').get(\'http://127.0.0.1:$_PORT\')\" >/dev/null 2>&1 || bash -c \"echo >/dev/tcp/127.0.0.1/$_PORT\" 2>/dev/null"; then
             echo "[OK] Service healthy after $$((i*2))s"
             HEALTHY=1; break
           fi
