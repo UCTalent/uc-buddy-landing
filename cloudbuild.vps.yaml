@@ -213,7 +213,6 @@ steps:
           --network uct_internal_net \
           --env-file /opt/$_SERVICE_NAME/.env \
           -v /opt/$_SERVICE_NAME/sa.json:/opt/$_SERVICE_NAME/sa.json:ro \
-          -p $_HOST_PORT:$_PORT \
           "$$IMAGE"
 
         echo "> Health check Green container..."
