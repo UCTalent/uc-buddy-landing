@@ -110,22 +110,58 @@ steps:
   - name: "ubuntu"
     id: Deploy-to-VPS
     entrypoint: "bash"
-    secretEnv: ["VM_SSH_KEY", "SA_BK_DEV", "SSH_PORT"]
+    secretEnv: ["VM_SSH_KEY", "SA_BK_DEV", "SSH_PORT", "TAILSCALE_AUTHKEY", "VPS_KNOWN_HOST"]
     args:
       - "-c"
       - |
-        set -e
+        set -euo pipefail
+        echo "> Installing Tailscale & SSH client..."
+        apt-get update -qq && apt-get install -y -q curl openssh-client
 
-        echo "▶ Installing SSH client..."
-        apt-get update -qq && apt-get install -y -q openssh-client
+        curl -fsSL https://tailscale.com/install.sh | sh
+        tailscaled --state=mem: &
+        sleep 3
+        tailscale up \
+          --authkey="$$TAILSCALE_AUTHKEY" \
+          --accept-routes \
+          --hostname="cloudbuild-buddy-$$(date +%s)" \
+          --timeout=30s
+
+        # Verify Tailscale IP
+        TS_OK=0
+        for i in $$(seq 1 120); do
+          TS_IP=$$(tailscale ip -4 2>/dev/null || true)
+          if [ -n "$$TS_IP" ]; then
+            echo "[OK] Tailscale connected: $$TS_IP"
+            TS_OK=1; break
+          fi
+          sleep 1
+        done
+        [ "$$TS_OK" -eq 1 ] || { echo "[ERROR] Tailscale failed to get IP"; exit 1; }
+
+        # Verify VPS reachable via Tailscale on custom SSH port
+        VPS_OK=0
+        for i in $$(seq 1 60); do
+          if timeout 5 bash -c "echo >/dev/tcp/$_VPS_IP/$$SSH_PORT" 2>/dev/null; then
+            echo "[OK] VPS reachable at $_VPS_IP:$$SSH_PORT via Tailscale"
+            VPS_OK=1; break
+          fi
+          sleep 2
+        done
+        [ "$$VPS_OK" -eq 1 ] || { echo "[ERROR] Cannot reach VPS via Tailscale"; exit 1; }
 
         echo "▶ Setting up SSH key..."
         mkdir -p /workspace/.ssh
+        chmod 700 /workspace/.ssh
         printf '%s\n' "$$VM_SSH_KEY" | tr -d '\r' > /workspace/.ssh/id_rsa
         chmod 600 /workspace/.ssh/id_rsa
 
+        # Setup known_hosts
+        printf '%s\n' "$$VPS_KNOWN_HOST" > /workspace/.ssh/known_hosts
+        chmod 600 /workspace/.ssh/known_hosts
+
         CONTROL_PATH="/workspace/.ssh/ctl-%r@%h:%p"
-        SSH_OPTS="-i /workspace/.ssh/id_rsa -o Port=$$SSH_PORT -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=auto -o ControlPath=$$CONTROL_PATH -o ControlPersist=300"
+        SSH_OPTS="-i /workspace/.ssh/id_rsa -o Port=$$SSH_PORT -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/workspace/.ssh/known_hosts -o ControlMaster=auto -o ControlPath=$$CONTROL_PATH -o ControlPersist=60"
         SSH_CMD="ssh $$SSH_OPTS $_VPS_USER@$_VPS_IP"
         SCP_CMD="scp $$SSH_OPTS"
 
@@ -133,11 +169,11 @@ steps:
         ssh -i /workspace/.ssh/id_rsa \
             -o Port=$$SSH_PORT \
             -o IdentitiesOnly=yes \
-            -o StrictHostKeyChecking=no \
-            -o UserKnownHostsFile=/dev/null \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile=/workspace/.ssh/known_hosts \
             -o ControlMaster=yes \
             -o ControlPath="$$CONTROL_PATH" \
-            -o ControlPersist=300 \
+            -o ControlPersist=60 \
             -Nf $_VPS_USER@$_VPS_IP
 
         echo "▶ Preparing VM directories..."
@@ -153,10 +189,12 @@ steps:
         echo "▶ Creating deployment script..."
         cat << 'EOF' > /workspace/deploy.sh
         #!/bin/bash
-        set -e
+        set -euo pipefail
 
         IMAGE=$_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
         IMAGE_REPO=$_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME
+        OLD_CONTAINER="${_SERVICE_NAME}_old"
+        GREEN_CONTAINER="${_SERVICE_NAME}_green"
 
         # Login to Artifact Registry on VPS
         cat /opt/$_SERVICE_NAME/sa.json | sudo docker login -u _json_key --password-stdin https://$_AR_HOSTNAME
@@ -164,13 +202,13 @@ steps:
         # Pull latest image
         sudo docker pull "$$IMAGE"
 
-        # Stop and remove old container
-        sudo docker stop $_SERVICE_NAME || true
-        sudo docker rm -f $_SERVICE_NAME || true
+        # Logout immediately
+        sudo docker logout $_AR_HOSTNAME 2>/dev/null || true
 
-        # Run new container
+        echo "> Starting Green container ($$GREEN_CONTAINER)..."
+        sudo docker rm -f "$$GREEN_CONTAINER" 2>/dev/null || true
         sudo docker run -d \
-          --name $_SERVICE_NAME \
+          --name "$$GREEN_CONTAINER" \
           --restart=always \
           --network uct_internal_net \
           --env-file /opt/$_SERVICE_NAME/.env \
@@ -178,12 +216,41 @@ steps:
           -p $_HOST_PORT:$_PORT \
           "$$IMAGE"
 
+        echo "> Health check Green container..."
+        HEALTHY=0
+        for i in $$(seq 1 120); do
+          if timeout 5 sudo docker exec "$$GREEN_CONTAINER" timeout 5 sh -c "echo >/dev/tcp/127.0.0.1/$_PORT" 2>/dev/null; then
+            echo "[OK] Service healthy after $$((i*2))s"
+            HEALTHY=1; break
+          fi
+          sleep 2
+        done
+
+        if [ "$$HEALTHY" -eq 0 ]; then
+          echo "[ERROR] Health check failed — rolling back!"
+          sudo docker stop "$$GREEN_CONTAINER" 2>/dev/null || true
+          sudo docker rm -f "$$GREEN_CONTAINER" 2>/dev/null || true
+          exit 1
+        fi
+
+        echo "> Health check passed! Switching traffic..."
+        sudo docker rename "$_SERVICE_NAME" "$$OLD_CONTAINER" 2>/dev/null || true
+        sudo docker rename "$$GREEN_CONTAINER" "$_SERVICE_NAME"
+
+        echo "> Waiting 35s for Nginx DNS cache to expire..."
+        sleep 35
+
+        echo "> Removing old container..."
+        sudo docker stop "$$OLD_CONTAINER" 2>/dev/null || true
+        sudo docker rm -f "$$OLD_CONTAINER" 2>/dev/null || true
+
         # Cleanup old images
         OLD_IMAGE_IDS=$$(sudo docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}' | awk -v current="$$IMAGE" -v repo="$$IMAGE_REPO" '$$1 ~ ("^" repo ":") && $$1 != current { print $$2 }')
 
         if [ -n "$$OLD_IMAGE_IDS" ]; then
-          sudo docker rmi -f $$OLD_IMAGE_IDS
+          sudo docker rmi -f $$OLD_IMAGE_IDS || true
         fi
+        sudo docker image prune -f 2>/dev/null || true
         EOF
 
         echo "▶ Copying deploy script to VM..."
@@ -194,6 +261,13 @@ steps:
 
         echo "▶ Cleaning up temp files on VM..."
         $$SSH_CMD "rm -rf /tmp/$_SERVICE_NAME"
+        ssh -O exit -o ControlPath="$$CONTROL_PATH" $_VPS_USER@$_VPS_IP 2>/dev/null || true
+
+        # Disconnect Tailscale session
+        tailscale logout || true
+
+        # Securely wipe Cloud Build workspace credentials
+        shred -u /workspace/sa.json /workspace/.ssh/id_rsa /workspace/.ssh/known_hosts 2>/dev/null || rm -f /workspace/sa.json /workspace/.ssh/id_rsa /workspace/.ssh/known_hosts
 
         echo "✅ Deployment finished!"
 
@@ -210,6 +284,10 @@ availableSecrets:
       env: "SA_BK_DEV"
     - versionName: projects/$PROJECT_ID/secrets/ssh-port-dev/versions/latest
       env: "SSH_PORT"
+    - versionName: projects/$PROJECT_ID/secrets/TAILSCALE_AUTH_KEY_DEV/versions/latest
+      env: "TAILSCALE_AUTHKEY"
+    - versionName: projects/$PROJECT_ID/secrets/vps-dev-known-host/versions/latest
+      env: "VPS_KNOWN_HOST"
 
 options:
   substitutionOption: ALLOW_LOOSE
@@ -228,7 +306,7 @@ substitutions:
   _HOST_PORT: "2510"
 
   # ===== VPS =====
-  _VPS_IP: "14.225.210.119"
+  _VPS_IP: "100.85.11.97"
   _VPS_USER: alphaforce
 
   # ===== Secret Manager =====
