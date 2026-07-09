@@ -22,32 +22,44 @@ function GooglePlayIcon({ className }: { className?: string }) {
   );
 }
 
-type StoreButtonProps = {
-  href?: string;
-};
+const GOOGLE_PLAY_URL =
+  "https://play.google.com/store/apps/details?id=com.uctalent.ucbuddy.prod.global";
 
-export function StoreDownloadButtons({ href = "#" }: StoreButtonProps) {
+// type StoreButtonProps = {
+//   href?: string;
+// };
+
+export function StoreDownloadButtons() {
   return (
     <div className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:justify-center">
+      
+      {/* App Store button */}
       <a
-        href={href}
-        className="btn-hover-lift inline-flex min-w-[220px] items-center gap-3.5 rounded-full bg-violet-600 px-5 py-2.5 text-left shadow-md shadow-violet-300/40 hover:bg-violet-700 hover:shadow-lg hover:shadow-violet-300/50"
+        aria-disabled="true"
+        className="pointer-events-none inline-flex min-w-[220px] cursor-not-allowed items-center gap-3.5 rounded-full bg-violet-300 px-5 py-2.5 text-left opacity-60"
       >
         <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-violet-500/60">
           <span className="flex size-7 items-center justify-center rounded-md bg-white">
             <AppleIcon className="size-4 text-black" />
           </span>
         </span>
+
         <span className="leading-tight text-white">
-          <span className="block text-[10px] font-semibold tracking-[0.12em] uppercase opacity-90">
-            Download on the
+          <span className="block text-[10px] font-semibold tracking-[0.12em] uppercase">
+            Coming Soon
           </span>
-          <span className="block text-base font-bold tracking-tight">App Store</span>
+
+          <span className="block text-base font-bold tracking-tight">
+            App Store
+          </span>
         </span>
       </a>
 
+      {/* Google Play button */}
       <a
-        href={href}
+        href={GOOGLE_PLAY_URL}
+        target="_blank"
+        rel="noopener noreferrer"
         className="btn-hover-lift inline-flex min-w-[220px] items-center gap-3.5 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-left shadow-md shadow-slate-200/60 hover:border-violet-200 hover:bg-violet-50/50 hover:shadow-lg hover:shadow-slate-200/70"
       >
         <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-slate-100">
